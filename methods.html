@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSP 핵심 메서드 요약</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="methods-body">
+    <div class="methods-page">
+      <header class="methods-hero">
+        <div>
+          <p class="hero-kicker">JSP 실전 대비</p>
+          <h1>핵심 메서드 한눈에 정리</h1>
+          <p>
+            요청 파라미터 처리, 파일 업로드 라이브러리 사용법, Commons-FileUpload 흐름 등 JSP 실기에서
+            반복 등장하는 메서드를 카테고리별로 정리했습니다. 문제를 풀기 전, 빠르게 스스로 리마인드하세요.
+          </p>
+        </div>
+        <nav class="methods-nav">
+          <a href="index.html" class="ghost-link">← 문제은행으로 돌아가기</a>
+          <ul>
+            <li><a href="#builtin-objects">내장 객체</a></li>
+            <li><a href="#directives">디렉티브</a></li>
+            <li><a href="#script-elements">스크립트 요소</a></li>
+            <li><a href="#action-tags">액션 태그</a></li>
+            <li><a href="#file-uploads">파일 업로드 라이브러리</a></li>
+          </ul>
+        </nav>
+      </header>
+
+      <div class="methods-layout">
+        <aside class="methods-toc" aria-label="핵심 메서드 목차">
+          <h2>목차</h2>
+          <ol>
+            <li>
+              <a href="#builtin-objects">JSP 내장 객체</a>
+              <ul>
+                <li><a href="#request-object">request</a></li>
+                <li><a href="#response-object">response</a></li>
+                <li><a href="#session-object">session</a></li>
+                <li><a href="#application-object">application</a></li>
+                <li><a href="#out-object">out</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="#directives">디렉티브</a>
+              <ul>
+                <li><a href="#page-directive">page</a></li>
+                <li><a href="#include-directive">include</a></li>
+                <li><a href="#taglib-directive">taglib</a></li>
+              </ul>
+            </li>
+            <li><a href="#script-elements">스크립트 요소</a></li>
+            <li>
+              <a href="#action-tags">액션 태그</a>
+              <ul>
+                <li><a href="#action-include">jsp:include</a></li>
+                <li><a href="#action-forward">jsp:forward</a></li>
+                <li><a href="#action-bean">jsp:useBean 계열</a></li>
+              </ul>
+            </li>
+            <li><a href="#file-uploads">파일 업로드 라이브러리</a></li>
+          </ol>
+        </aside>
+
+        <main class="methods-doc">
+          <section id="builtin-objects" class="doc-section">
+            <header>
+              <h2>JSP 내장 객체</h2>
+              <p>Servlet 컨테이너가 JSP마다 자동으로 제공하는 객체입니다. 요청/응답 제어, 상태 유지, 출력 스트림 제어 시 자주 활용됩니다.</p>
+            </header>
+
+            <article id="request-object" class="doc-article">
+              <h3><code>request</code> — HttpServletRequest</h3>
+              <p>클라이언트가 전송한 요청 라인·헤더·파라미터에 접근합니다.</p>
+              <dl class="doc-list">
+                <div>
+                  <dt><code>getParameter(String name)</code></dt>
+                  <dd>단일 폼 값을 문자열로 반환합니다. <strong>주의</strong>: 멀티 선택 요소에는 부적합.</dd>
+                </div>
+                <div>
+                  <dt><code>getParameterValues(String name)</code></dt>
+                  <dd>체크박스·전화번호 분할 입력 등 동일 name 다중 값을 배열로 조회합니다.</dd>
+                </div>
+                <div>
+                  <dt><code>getParameterNames()</code></dt>
+                  <dd>모든 파라미터 이름을 <code>Enumeration</code>으로 제공해 일괄 처리/디버깅에 활용합니다.</dd>
+                </div>
+                <div>
+                  <dt><code>setCharacterEncoding(String charset)</code></dt>
+                  <dd>POST 본문 디코딩 방식을 지정합니다. 첫 <code>getParameter</code> 이전에 설정해야 합니다.</dd>
+                </div>
+              </dl>
+              <div class="doc-example">
+                <p class="example-title">폼 데이터 처리 흐름</p>
+                <pre class="doc-code"><%@ page contentType="text/html; charset=UTF-8" %>
+<%
+request.setCharacterEncoding("UTF-8");
+String userId = request.getParameter("userId");
+String[] hobbies = request.getParameterValues("hobby");
+%>
+아이디: <%= userId %><br />
+취미: <%= hobbies == null ? "없음" : String.join(", ", hobbies) %></pre>
+              </div>
+              <div class="doc-example">
+                <p class="example-title">전달된 파라미터 전체 로깅</p>
+                <pre class="doc-code"><%
+Enumeration<String> names = request.getParameterNames();
+while (names.hasMoreElements()) {
+  String name = names.nextElement();
+  String value = request.getParameter(name);
+  log(name + "=" + value);
+}
+%></pre>
+              </div>
+            </article>
+
+            <article id="response-object" class="doc-article">
+              <h3><code>response</code> — HttpServletResponse</h3>
+              <p>클라이언트로 보낼 상태 코드, 헤더, 인코딩, 리다이렉션 등을 제어합니다.</p>
+              <dl class="doc-list">
+                <div>
+                  <dt><code>setContentType(String type)</code></dt>
+                  <dd>응답 MIME 타입 및 문자셋을 지정합니다. 예: <code>text/html;charset=UTF-8</code>.</dd>
+                </div>
+                <div>
+                  <dt><code>sendRedirect(String location)</code></dt>
+                  <dd>302 리다이렉션을 수행해 클라이언트에게 새 요청을 지시합니다.</dd>
+                </div>
+                <div>
+                  <dt><code>addCookie(Cookie cookie)</code></dt>
+                  <dd>세션 유지, 사용자 설정 저장 등을 위해 쿠키를 추가합니다.</dd>
+                </div>
+              </dl>
+              <div class="doc-example">
+                <p class="example-title">로그인 성공 시 리다이렉트</p>
+                <pre class="doc-code"><%
+if (isValidUser) {
+  response.sendRedirect("dashboard.jsp");
+} else {
+  response.setContentType("text/html;charset=UTF-8");
+  out.println("로그인 실패");
+}
+%></pre>
+              </div>
+              <div class="doc-example">
+                <p class="example-title">쿠키 · 캐시 제어</p>
+                <pre class="doc-code"><%
+Cookie stay = new Cookie("remember", "Y");
+stay.setMaxAge(7 * 24 * 60 * 60);
+response.addCookie(stay);
+response.setHeader("Cache-Control", "no-store, must-revalidate");
+response.setHeader("Pragma", "no-cache");
+%></pre>
+              </div>
+            </article>
+
+            <article id="session-object" class="doc-article">
+              <h3><code>session</code> — HttpSession</h3>
+              <p>사용자별 상태를 서버 메모리에 저장합니다. 객체 저장이 가능하므로 로그인, 장바구니 등에서 필수입니다.</p>
+              <dl class="doc-list">
+                <div>
+                  <dt><code>setAttribute(String name, Object value)</code></dt>
+                  <dd>세션 범위에 값을 저장합니다.</dd>
+                </div>
+                <div>
+                  <dt><code>getAttribute(String name)</code></dt>
+                  <dd>저장된 객체를 읽어옵니다. 반환 타입 캐스팅에 유의하세요.</dd>
+                </div>
+                <div>
+                  <dt><code>invalidate()</code></dt>
+                  <dd>세션을 완전히 종료합니다. 로그아웃 시 사용합니다.</dd>
+                </div>
+              </dl>
+              <div class="doc-example">
+                <p class="example-title">세션을 이용한 로그인 유지</p>
+                <pre class="doc-code"><%
+session.setAttribute("loginUser", userDto);
+%>
+<p>환영합니다, <%= ((UserDto) session.getAttribute("loginUser")).getName() %> 님!</p></pre>
+              </div>
+              <div class="doc-example">
+                <p class="example-title">전역 로그아웃 처리</p>
+                <pre class="doc-code"><%
+session.invalidate();
+response.sendRedirect("login.jsp");
+%></pre>
+              </div>
+            </article>
+
+            <article id="application-object" class="doc-article">
+              <h3><code>application</code> — ServletContext</h3>
+              <p>애플리케이션 전역에서 공유되는 자원에 접근합니다. 초기화 파라미터, 전역 카운터, 공용 디렉터리 등 관리에 유용합니다.</p>
+              <dl class="doc-list">
+                <div>
+                  <dt><code>getRealPath(String path)</code></dt>
+                  <dd>웹 루트 기준 물리적 경로를 반환합니다. 파일 업로드 경로 계산에 사용합니다.</dd>
+                </div>
+                <div>
+                  <dt><code>setAttribute / getAttribute</code></dt>
+                  <dd>전역 공유 객체를 등록/조회합니다. 단, 동시성 제어를 고려해야 합니다.</dd>
+                </div>
+              </dl>
+              <div class="doc-example">
+                <p class="example-title">업로드 저장 경로 계산</p>
+                <pre class="doc-code"><%
+String uploadDir = application.getRealPath("/upload");
+File folder = new File(uploadDir);
+if (!folder.exists()) {
+  folder.mkdirs();
+}
+%></pre>
+              </div>
+              <div class="doc-example">
+                <p class="example-title">전역 방문자 수 증가</p>
+                <pre class="doc-code"><%
+Integer total = (Integer) application.getAttribute("visitTotal");
+if (total == null) total = 0;
+application.setAttribute("visitTotal", total + 1);
+%></pre>
+              </div>
+            </article>
+
+            <article id="out-object" class="doc-article">
+              <h3><code>out</code> — JspWriter</h3>
+              <p>JSP의 출력 버퍼를 제어합니다. <code>println</code> 등을 통해 직접 HTML을 작성할 수 있으나 JSTL/표현식을 주로 사용합니다.</p>
+              <dl class="doc-list">
+                <div>
+                  <dt><code>println(String s)</code></dt>
+                  <dd>문자열 출력 후 줄바꿈 합니다. 디버깅 메시지를 빠르게 남길 때 사용합니다.</dd>
+                </div>
+                <div>
+                  <dt><code>flush()</code></dt>
+                  <dd>버퍼 내용을 즉시 클라이언트로 전송합니다.</dd>
+                </div>
+              </dl>
+            </article>
+          </section>
+
+          <section id="directives" class="doc-section">
+            <header>
+              <h2>디렉티브</h2>
+              <p>JSP 페이지 전체에 영향을 주는 설정입니다. 페이지 속성, 공통 조각 포함, 태그 라이브러리 선언에 사용합니다.</p>
+            </header>
+
+            <article id="page-directive" class="doc-article">
+              <h3><code>&lt;%@ page ... %&gt;</code></h3>
+              <p>JSP 페이지의 동작 방식을 지정합니다.</p>
+              <div class="doc-table-wrapper">
+                <table class="doc-table">
+                  <thead>
+                    <tr><th>속성</th><th>설명</th><th>예시</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>contentType</code></td>
+                      <td>응답 MIME 타입과 인코딩 설정</td>
+                      <td><code>contentType="text/html; charset=UTF-8"</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>import</code></td>
+                      <td>자바 클래스 import (콤마로 다중 지정 가능)</td>
+                      <td><code>import="java.util.List,model.User"</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>errorPage</code></td>
+                      <td>예외 발생 시 이동할 JSP 지정</td>
+                      <td><code>errorPage="/error.jsp"</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="doc-example">
+                <p class="example-title">페이지 기본 설정</p>
+                <pre class="doc-code"><%@ page language="java"
+         contentType="text/html; charset=UTF-8"
+         import="java.util.List,model.Product"
+         errorPage="/error.jsp" %></pre>
+              </div>
+            </article>
+
+            <article id="include-directive" class="doc-article">
+              <h3><code>&lt;%@ include file="..." %&gt;</code></h3>
+              <p>정적 포함(compile-time include)입니다. 헤더/푸터 등 변하지 않는 공통 레이아웃을 묶을 때 사용합니다.</p>
+              <div class="doc-example">
+                <p class="example-title">정적 레이아웃 구성</p>
+                <pre class="doc-code"><%@ include file="/WEB-INF/views/layout/header.jsp" %>
+<!-- 페이지 본문 -->
+<%@ include file="/WEB-INF/views/layout/footer.jsp" %></pre>
+              </div>
+            </article>
+
+            <article id="taglib-directive" class="doc-article">
+              <h3><code>&lt;%@ taglib prefix="c" uri="..." %&gt;</code></h3>
+              <p>JSTL 또는 커스텀 태그 라이브러리를 사용하려면 미리 선언해야 합니다.</p>
+              <div class="doc-example">
+                <p class="example-title">JSTL Core 선언</p>
+                <pre class="doc-code"><%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<c:forEach var="product" items="${productList}">
+  <li>${product.name}</li>
+</c:forEach></pre>
+              </div>
+            </article>
+          </section>
+
+          <section id="script-elements" class="doc-section">
+            <header>
+              <h2>스크립트 요소</h2>
+              <p>JSP에서 자바 코드를 삽입하는 방법입니다. 유지보수를 위해 JSTL/EL 대체를 권장하지만, 실기 시험에서는 기본 문법 숙지가 필요합니다.</p>
+            </header>
+
+            <article class="doc-article">
+              <h3><code>&lt;% ... %&gt;</code> — 스크립틀릿</h3>
+              <p>자바 구문을 그대로 삽입합니다. 로컬 변수 선언, 제어문 등에 사용되지만 과도한 사용은 비추천입니다.</p>
+              <div class="doc-example">
+                <pre class="doc-code"><%
+List<String> list = Arrays.asList("A", "B", "C");
+for (String item : list) {
+%>
+  <p><%= item %></p>
+<%
+}
+%></pre>
+              </div>
+            </article>
+
+            <article class="doc-article">
+              <h3><code>&lt;%= ... %&gt;</code> — 표현식(Expression)</h3>
+              <p>표현식 안의 결과를 문자열로 변환하여 바로 출력합니다. 세미콜론 없이 단일 구문만 작성합니다.</p>
+              <div class="doc-example">
+                <pre class="doc-code">현재 시각: <%= new java.util.Date() %></pre>
+              </div>
+            </article>
+
+            <article class="doc-article">
+              <h3><code>&lt;%! ... %&gt;</code> — 선언부(Declaration)</h3>
+              <p>JSP가 생성하는 서블릿 클래스의 멤버 변수/메서드를 선언합니다. 재사용 가능한 헬퍼 메서드를 정의할 때 사용합니다.</p>
+              <div class="doc-example">
+                <pre class="doc-code"><%!
+private String maskEmail(String email) {
+  int idx = email.indexOf("@");
+  return email.substring(0, 2) + "***" + email.substring(idx);
+}
+%>
+마스킹 결과: <%= maskEmail("coder@test.com") %></pre>
+              </div>
+            </article>
+          </section>
+
+          <section id="action-tags" class="doc-section">
+            <header>
+              <h2>액션 태그</h2>
+              <p>JSP 표준 액션 태그는 런타임에 JSP 작업을 수행합니다. 정적 include와 다른 동적 동작을 제공하며 XML 문법도 지원합니다.</p>
+            </header>
+
+            <article id="action-include" class="doc-article">
+              <h3><code>&lt;jsp:include page="..."&gt;</code></h3>
+              <p>요청 처리 시점에 다른 JSP/서블릿의 결과를 현재 페이지에 포함합니다.</p>
+              <dl class="doc-list">
+                <div>
+                  <dt><code>page</code></dt>
+                  <dd>포함할 리소스의 경로. 쿼리 문자열 대신 <code>&lt;jsp:param&gt;</code>으로 값 전달</dd>
+                </div>
+                <div>
+                  <dt><code>flush</code></dt>
+                  <dd>포함 전 버퍼를 비울지 여부 (기본값 false)</dd>
+                </div>
+              </dl>
+              <div class="doc-example">
+                <p class="example-title">상품 요약 동적 포함</p>
+                <pre class="doc-code"><jsp:include page="productSummary.jsp">
+  <jsp:param name="productId" value="${param.id}" />
+</jsp:include></pre>
+              </div>
+            </article>
+
+            <article id="action-forward" class="doc-article">
+              <h3><code>&lt;jsp:forward page="..."&gt;</code></h3>
+              <p>서블릿의 <code>RequestDispatcher.forward()</code>와 동일하게 현재 요청을 다른 리소스로 넘깁니다.</p>
+              <div class="doc-example">
+                <p class="example-title">권한 부족 시 포워드</p>
+                <pre class="doc-code"><%
+boolean authorized = Boolean.TRUE.equals(session.getAttribute("admin"));
+if (!authorized) {
+%>
+  <jsp:forward page="/WEB-INF/views/denied.jsp" />
+<%
+}
+%></pre>
+              </div>
+            </article>
+
+            <article id="action-bean" class="doc-article">
+              <h3><code>&lt;jsp:useBean&gt;</code> 계열</h3>
+              <p>JSP에서 JavaBean을 생성하고 프로퍼티를 설정/읽는 태그입니다. EL과 조합해 Model 데이터를 다룰 수 있습니다.</p>
+              <dl class="doc-list">
+                <div>
+                  <dt><code>&lt;jsp:useBean id="user" scope="session" class="model.User" /&gt;</code></dt>
+                  <dd>세션에 <code>model.User</code> 인스턴스를 생성하거나 기존 객체를 재사용합니다.</dd>
+                </div>
+                <div>
+                  <dt><code>&lt;jsp:setProperty ... /&gt;</code></dt>
+                  <dd>요청 파라미터와 동일한 이름의 프로퍼티를 자동 바인딩하거나 명시적으로 설정합니다.</dd>
+                </div>
+                <div>
+                  <dt><code>&lt;jsp:getProperty ... /&gt;</code></dt>
+                  <dd>프로퍼티 값을 출력합니다. 현재는 EL <code>${user.name}</code> 방식이 더 일반적입니다.</dd>
+                </div>
+              </dl>
+              <div class="doc-example">
+                <p class="example-title">폼 데이터 Bean 매핑</p>
+                <pre class="doc-code"><jsp:useBean id="member" scope="request" class="model.Member" />
+<jsp:setProperty name="member" property="*" />
+가입자 이름: <jsp:getProperty name="member" property="name" /></pre>
+              </div>
+            </article>
+          </section>
+
+          <section id="file-uploads" class="doc-section">
+            <header>
+              <h2>파일 업로드 라이브러리 비교</h2>
+              <p>JSP 실기에서는 cos.jar(O'Reilly)과 Apache Commons-FileUpload 두 가지 접근법을 모두 숙지해야 합니다.</p>
+            </header>
+
+            <div class="doc-example">
+              <p class="example-title">Eclipse에서 라이브러리 적용 가이드</p>
+              <ol class="doc-guide">
+                <li><strong>jar 다운로드</strong>: cos.jar는 servlets.com, commons-fileupload와 commons-io는 Apache Commons 공식 페이지에서 내려받아요.</li>
+                <li><strong>WEB-INF/lib에 복사</strong>: Eclipse Project Explorer에서 <code>WebContent/WEB-INF/lib</code> 폴더에 jar 파일들을 추가합니다.</li>
+                <li><strong>Build Path 확인</strong>: 프로젝트 우클릭 → Properties → Java Build Path → Libraries 탭에서 “Add JARs…” 버튼으로 <code>WEB-INF/lib</code> 내부 jar를 선택합니다.</li>
+                <li><strong>서버 재배포</strong>: 라이브러리 추가 후 Tomcat을 clean &amp; publish 하거나 재시작해야 변경 사항이 반영됩니다.</li>
+                <li><strong>의존성 주의</strong>: Commons-FileUpload를 사용할 때는 <code>commons-io</code>도 함께 추가해야 예외가 발생하지 않습니다.</li>
+              </ol>
+            </div>
+
+            <div class="doc-table-wrapper">
+              <table class="doc-table">
+                <thead>
+                  <tr>
+                    <th>구분</th>
+                    <th>cos.jar (com.oreilly.servlet)</th>
+                    <th>Apache Commons-FileUpload</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>핵심 클래스</td>
+                    <td><code>MultipartRequest</code></td>
+                    <td><code>ServletFileUpload</code> + <code>DiskFileItemFactory</code></td>
+                  </tr>
+                  <tr>
+                    <td>파라미터 읽기</td>
+                    <td><code>multi.getParameter</code>, <code>getFilesystemName</code>, <code>getOriginalFileName</code></td>
+                    <td><code>item.isFormField()</code>로 구분 후 <code>item.getString("UTF-8")</code> 또는 <code>item.write()</code></td>
+                  </tr>
+                  <tr>
+                    <td>인코딩 지정</td>
+                    <td>생성자 4번째 인자 <code>"UTF-8"</code></td>
+                    <td><code>upload.setHeaderEncoding("UTF-8")</code></td>
+                  </tr>
+                  <tr>
+                    <td>장점</td>
+                    <td>간단한 API, 빠른 작성</td>
+                    <td>세밀한 제어(ProgressListener, 임시 저장소, 용량 제한)</td>
+                  </tr>
+                  <tr>
+                    <td>유의사항</td>
+                    <td><code>MultipartRequest</code> 생성 후에는 <code>request.getParameter</code> 사용 금지</td>
+                    <td><code>FileUploadException</code> 예외 처리, commons-io 의존성 필요</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="doc-example">
+              <p class="example-title">Commons 업로드 골격</p>
+              <pre class="doc-code"><%
+DiskFileItemFactory factory = new DiskFileItemFactory();
+ServletFileUpload upload = new ServletFileUpload(factory);
+upload.setHeaderEncoding("UTF-8");
+upload.setProgressListener((bytes, total, idx) -> {
+  double percent = total > 0 ? bytes * 100.0 / total : 0;
+  log(String.format("업로드 %.1f%%", percent));
+});
+
+List<FileItem> items = upload.parseRequest(request);
+for (FileItem item : items) {
+  if (item.isFormField()) {
+    log(item.getFieldName() + "=" + item.getString("UTF-8"));
+  } else {
+    File store = new File(application.getRealPath("/upload"), item.getName());
+    item.write(store);
+  }
+}
+%></pre>
+            </div>
+            <div class="doc-example">
+              <p class="example-title">cos.jar 업로드 기본</p>
+              <pre class="doc-code"><%
+String path = application.getRealPath("/upload");
+MultipartRequest multi = new MultipartRequest(
+  request,
+  path,
+  5 * 1024 * 1024,
+  "UTF-8",
+  new DefaultFileRenamePolicy()
+);
+String writer = multi.getParameter("writer");
+String saved = multi.getFilesystemName("report");
+%>
+작성자: <%= writer %><br/>
+업로드 파일: <%= saved %></pre>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <footer class="methods-footer">
+        <p>이 요약 페이지는 JSP 실기 시험 대비용으로 제작되었습니다. 실습 문제는 <a href="index.html">문제은행</a>에서 계속 진행하세요.</p>
+      </footer>
+    </div>
+  </body>
+</html>
